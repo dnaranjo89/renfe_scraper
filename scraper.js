@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 var request = require('request');
+var fs = require('fs');
 
 const {
     DEBUG_GROUP,
@@ -68,26 +69,48 @@ async function checkIfTicketsAvailable() {
     } catch (e) {
         ticketsAvailable = true;
         console.log('Results seem to be published');
-        // await page.screenshot({ path: 'page.png', fullPage: true });
+        const screenshot = await page.screenshot({ path:'screenshot.png', fullPage: true });
+        sendNotification(ticketsAvailable, screenshot)
     } finally {
         browser.close();
     }
     return ticketsAvailable;
 }
 
-const sendNotification = (ticketsAvailable) => {
+const sendNotification = (ticketsAvailable, screenshot) => {
     const targetTelegramChannel = DEBUG_GROUP
     const message = ticketsAvailable ? "Tickets available" : "Tickets not available"
-    request(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${targetTelegramChannel}&text=${message}`, function (error, response, body) {
+    const messageUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${targetTelegramChannel}&text=${message}`
+    const photoUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto?chat_id=${targetTelegramChannel}&text=${message}`
+    request(messageUrl, function (error, response, body) {
         console.log('error:', error); // Print the error if one occurred
         console.log('statusCode:', response && response.statusCode); // Print the response status code if a response was received
         console.log('body:', body); // Print the HTML for the Google homepage.
     });
+    const stream = fs.createReadStream('./screenshot.png');
+    const formData = {
+        photo: stream
+      };
+    var req = request.post({url:photoUrl,formData:formData}, function (err, resp, body) {
+        if (err) {
+          console.log('Error!');
+        } else {
+          console.log('URL: ' + body);
+        }
+      });
+    //   var form = req.form();
+    // //   form.append('file', screenshot);
+    // form.append('file', fs.createReadStream('screenshot.png'));
+
+    //   form.append('file', screenshot, {
+    //     filename: 'screenshot.png',
+    //     contentType: 'text/plain'
+    //   });
 }
 
 const checkAndNotify = async () => {
     const ticketsAvailable = await checkIfTicketsAvailable()
-    sendNotification(ticketsAvailable)
+    // sendNotification(ticketsAvailable)
 }
 
 exports.checkAndNotify = checkAndNotify
