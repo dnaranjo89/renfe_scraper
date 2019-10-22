@@ -69,23 +69,22 @@ async function checkIfTicketsAvailable() {
     } catch (e) {
         ticketsAvailable = true;
         console.log('Results seem to be published');
-        const screenshot = await page.screenshot({ path:'screenshot.png', fullPage: true });
-        sendNotification(ticketsAvailable, screenshot)
+        await page.screenshot({ path:'screenshot.png', fullPage: true });
     } finally {
         browser.close();
     }
     return ticketsAvailable;
 }
 
-const sendNotification = (ticketsAvailable, screenshot) => {
+const sendNotification = (ticketsAvailable, ) => {
     const targetTelegramChannel = DEBUG_GROUP
     const message = ticketsAvailable ? "Tickets available" : "Tickets not available"
     const messageUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${targetTelegramChannel}&text=${message}`
     const photoUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto?chat_id=${targetTelegramChannel}&text=${message}`
     request(messageUrl, function (error, response, body) {
-        console.log('error:', error); // Print the error if one occurred
-        console.log('statusCode:', response && response.statusCode); // Print the response status code if a response was received
-        console.log('body:', body); // Print the HTML for the Google homepage.
+        console.log('error:', error);
+        console.log('statusCode:', response && response.statusCode); 
+        console.log('body:', body); 
     });
     const stream = fs.createReadStream('./screenshot.png');
     const formData = {
@@ -98,19 +97,11 @@ const sendNotification = (ticketsAvailable, screenshot) => {
           console.log('URL: ' + body);
         }
       });
-    //   var form = req.form();
-    // //   form.append('file', screenshot);
-    // form.append('file', fs.createReadStream('screenshot.png'));
-
-    //   form.append('file', screenshot, {
-    //     filename: 'screenshot.png',
-    //     contentType: 'text/plain'
-    //   });
 }
 
 const checkAndNotify = async () => {
     const ticketsAvailable = await checkIfTicketsAvailable()
-    // sendNotification(ticketsAvailable)
+    sendNotification(ticketsAvailable)
 }
 
 exports.checkAndNotify = checkAndNotify
