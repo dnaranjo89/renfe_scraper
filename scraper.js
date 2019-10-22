@@ -20,9 +20,7 @@ const stringIsInPage = async string => await page.evaluate(() => {
 async function checkIfTicketsAvailable() {
     console.log('run');
     let ticketsAvailable = false;
-    const browser = await puppeteer.launch({
-        headless: true
-    });
+    const browser = await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox']});
     const page = await browser.newPage();
 
     await page.goto('http://www.renfe.com/');
