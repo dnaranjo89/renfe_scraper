@@ -77,24 +77,26 @@ async function checkIfTicketsAvailable() {
 const sendNotification = (ticketsAvailable, ) => {
     const targetTelegramChannel = ticketsAvailable ? TARGET_GROUP : DEBUG_GROUP;
     const message = ticketsAvailable ? "Tickets available" : "Tickets not available"
-    const messageUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${targetTelegramChannel}&text=${message}`
-    const photoUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto?chat_id=${targetTelegramChannel}&text=${message}`
-    request(messageUrl, function (error, response, body) {
+    const sendMessageUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${targetTelegramChannel}&text=${message}`
+    request(sendMessageUrl, function (error, response, body) {
         console.log('error:', error);
         console.log('statusCode:', response && response.statusCode);
         console.log('body:', body);
     });
-    const stream = fs.createReadStream('./screenshot.png');
-    const formData = {
-        photo: stream
-    };
-    var req = request.post({ url: photoUrl, formData: formData }, function (err, resp, body) {
-        if (err) {
-            console.log('Error!');
-        } else {
-            console.log('URL: ' + body);
-        }
-    });
+    if (ticketsAvailable){
+        const sendPhotoUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto?chat_id=${targetTelegramChannel}&text=${message}`
+        const stream = fs.createReadStream('./screenshot.png');
+        const formData = {
+            photo: stream
+        };
+        request.post({ url: sendPhotoUrl, formData: formData }, function (err, resp, body) {
+            if (err) {
+                console.log('Error!');
+            } else {
+                console.log('URL: ' + body);
+            }
+        });
+    }
 }
 
 const checkAndNotify = async () => {
