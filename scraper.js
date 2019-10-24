@@ -50,7 +50,7 @@ async function checkIfTicketsAvailable() {
 
     await searchInput.click({ clickCount: 3 });
     await searchInput.press('Backspace');
-    await page.keyboard.type("15/12/2019");
+    await page.keyboard.type("16/12/2019");
     await page.waitFor(500);
     page.keyboard.press('Enter');
 
