@@ -21,7 +21,7 @@ const stringIsInPage = async string => await page.evaluate(() => {
 async function checkIfTicketsAvailable() {
     console.log('run');
     let ticketsAvailable = false;
-    const browser = await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox']});
+    const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
 
     await page.goto('http://www.renfe.com/');
@@ -30,7 +30,6 @@ async function checkIfTicketsAvailable() {
     const destinationSelector = "#IdDestino"
     const dateSelector = "#__fechaIdaVisual"
     const submitButtonSelector = "#datosBusqueda > button"
-    const resultsTableSelector = "#tab-listado"
     const stringNoResults = "El trayecto consultado no se encuentra disponible"
 
     // Set Origin
@@ -65,11 +64,10 @@ async function checkIfTicketsAvailable() {
             `document.querySelector("body").innerText.includes("${stringNoResults}")`,
             { timeout: 3000 }
         );
-        console.log('Results not public yet');
+        ticketsAvailable = false;
     } catch (e) {
         ticketsAvailable = true;
-        console.log('Results seem to be published');
-        await page.screenshot({ path:'screenshot.png', fullPage: true });
+        await page.screenshot({ path: 'screenshot.png', fullPage: true });
     } finally {
         browser.close();
     }
@@ -77,26 +75,26 @@ async function checkIfTicketsAvailable() {
 }
 
 const sendNotification = (ticketsAvailable, ) => {
-    const targetTelegramChannel = DEBUG_GROUP
+    const targetTelegramChannel = ticketsAvailable ? TARGET_GROUP : DEBUG_GROUP;
     const message = ticketsAvailable ? "Tickets available" : "Tickets not available"
     const messageUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${targetTelegramChannel}&text=${message}`
     const photoUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto?chat_id=${targetTelegramChannel}&text=${message}`
     request(messageUrl, function (error, response, body) {
         console.log('error:', error);
-        console.log('statusCode:', response && response.statusCode); 
-        console.log('body:', body); 
+        console.log('statusCode:', response && response.statusCode);
+        console.log('body:', body);
     });
     const stream = fs.createReadStream('./screenshot.png');
     const formData = {
         photo: stream
-      };
-    var req = request.post({url:photoUrl,formData:formData}, function (err, resp, body) {
+    };
+    var req = request.post({ url: photoUrl, formData: formData }, function (err, resp, body) {
         if (err) {
-          console.log('Error!');
+            console.log('Error!');
         } else {
-          console.log('URL: ' + body);
+            console.log('URL: ' + body);
         }
-      });
+    });
 }
 
 const checkAndNotify = async () => {
