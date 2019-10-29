@@ -62,7 +62,7 @@ async function checkIfTicketsAvailable() {
     try {
         await page.waitForFunction(
             `document.querySelector("body").innerText.includes("${stringNoResults}")`,
-            { timeout: 3000 }
+            { timeout: 5000 }
         );
         ticketsAvailable = false;
     } catch (e) {
