@@ -28,13 +28,13 @@ async function checkIfTicketsAvailable() {
 
   // Set Origin
   await page.click(originSelector);
-  await page.keyboard.type("Barcelona");
+  await page.keyboard.type("Sevilla");
   await page.waitFor(500);
   page.keyboard.press("Enter");
 
   // Set Destination
   await page.click(destinationSelector);
-  await page.keyboard.type("Sevilla");
+  await page.keyboard.type("Barcelona");
   await page.waitFor(500);
   page.keyboard.press("Enter");
 
@@ -43,7 +43,7 @@ async function checkIfTicketsAvailable() {
 
   await searchInput.click({ clickCount: 3 });
   await searchInput.press("Backspace");
-  await page.keyboard.type("16/12/2019");
+  await page.keyboard.type("02/03/2020");
   await page.waitFor(500);
   page.keyboard.press("Enter");
 
