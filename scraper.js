@@ -10,11 +10,12 @@ const stringIsInPage = async string =>
     return document.querySelector(selector).innerText.includes(string);
   });
 
-async function checkIfTicketsAvailable() {
+async function checkIfTicketsAvailable(headless) {
   console.log("run");
   let ticketsAvailable = false;
   const browser = await puppeteer.launch({
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    headless
   });
   const page = await browser.newPage();
 
@@ -98,8 +99,8 @@ const sendNotification = ticketsAvailable => {
   }
 };
 
-const checkAndNotify = async () => {
-  const ticketsAvailable = await checkIfTicketsAvailable();
+const checkAndNotify = async (headless = true) => {
+  const ticketsAvailable = await checkIfTicketsAvailable(headless);
   sendNotification(ticketsAvailable);
 };
 
