@@ -2,21 +2,42 @@ const puppeteer = require("puppeteer");
 var request = require("request");
 var fs = require("fs");
 
+const { NETWORK_PRESETS } = require("./networkPresets.js");
+
 const { DEBUG_GROUP, TARGET_GROUP, TELEGRAM_BOT_TOKEN } = process.env;
 
-const stringIsInPage = async string =>
-  await page.evaluate(() => {
-    const selector = "body";
-    return document.querySelector(selector).innerText.includes(string);
+const throttleConnection = page => {
+  // Connect to Chrome DevTools
+  const client = await page.target().createCDPSession();
+
+  // Set throttling property
+  await client.send("Network.emulateNetworkConditions", {
+    ...NETWORK_PRESETS.Regular3G
   });
+}
+
+const areTicketsAvailable = async () => {
+  try {
+    await page.waitForFunction('document.querySelector("body")', {
+      timeout: 15000
+    });
+    await page.waitForFunction(
+      `document.querySelector("body").innerText.includes("${stringNoResults}")`,
+      { timeout: 15000 }
+    );
+    return false;
+  } catch (e) {
+    return true;
+  }
+};
 
 async function checkIfTicketsAvailable(headless) {
-  console.log("run");
   let ticketsAvailable = false;
   const browser = await puppeteer.launch({
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
     headless
   });
+
   const page = await browser.newPage();
 
   await page.goto("http://www.renfe.com/");
@@ -51,20 +72,17 @@ async function checkIfTicketsAvailable(headless) {
   // Submit
   await page.click(submitButtonSelector);
 
-  // Wait for page load
-  await page.waitFor(3 * 1000);
-  try {
-    await page.waitForFunction(
-      `document.querySelector("body").innerText.includes("${stringNoResults}")`,
-      { timeout: 5000 }
-    );
-    ticketsAvailable = false;
-  } catch (e) {
-    ticketsAvailable = true;
+  // Throttle connection
+  // throttleConnection()
+
+  // Wait for page redirect
+  await page.waitFor(5000);
+  const ticketsAvailable = areTicketsAvailable();
+  if (ticketsAvailable) {
     await page.screenshot({ path: "screenshot.png", fullPage: true });
-  } finally {
-    browser.close();
   }
+  browser.close();
+
   return ticketsAvailable;
 }
 
@@ -75,9 +93,11 @@ const sendNotification = ticketsAvailable => {
     : "Tickets not available";
   const sendMessageUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${targetTelegramChannel}&text=${message}`;
   request(sendMessageUrl, function(error, response, body) {
-    console.log("error:", error);
     console.log("statusCode:", response && response.statusCode);
     console.log("body:", body);
+    if (error) {
+      console.log("error:", error);
+    }
   });
   if (ticketsAvailable) {
     const sendPhotoUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto?chat_id=${targetTelegramChannel}&text=${message}`;
