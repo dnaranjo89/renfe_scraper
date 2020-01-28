@@ -6,7 +6,13 @@ const { NETWORK_PRESETS } = require("./networkPresets.js");
 
 const { DEBUG_GROUP, TARGET_GROUP, TELEGRAM_BOT_TOKEN } = process.env;
 
-const throttleConnection = page => {
+const STRING_NO_RESULTS = "El trayecto consultado no se encuentra disponible";
+const ORIGIN_SELECTOR = "#IdOrigen";
+const DESTINATION_SELECTOR = "#IdDestino";
+const DATE_SELECTOR = "#__fechaIdaVisual";
+const SUBMIT_BUTTON_SELECTOR = "#datosBusqueda > button";
+
+const throttleConnection = async page => {
   // Connect to Chrome DevTools
   const client = await page.target().createCDPSession();
 
@@ -14,15 +20,15 @@ const throttleConnection = page => {
   await client.send("Network.emulateNetworkConditions", {
     ...NETWORK_PRESETS.Regular3G
   });
-}
+};
 
-const areTicketsAvailable = async () => {
+const areTicketsAvailable = async page => {
   try {
     await page.waitForFunction('document.querySelector("body")', {
       timeout: 15000
     });
     await page.waitForFunction(
-      `document.querySelector("body").innerText.includes("${stringNoResults}")`,
+      `document.querySelector("body").innerText.includes("${STRING_NO_RESULTS}")`,
       { timeout: 15000 }
     );
     return false;
@@ -32,36 +38,28 @@ const areTicketsAvailable = async () => {
 };
 
 async function checkIfTicketsAvailable(headless) {
-  let ticketsAvailable = false;
   const browser = await puppeteer.launch({
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
     headless
   });
 
   const page = await browser.newPage();
-
   await page.goto("http://www.renfe.com/");
 
-  const originSelector = "#IdOrigen";
-  const destinationSelector = "#IdDestino";
-  const dateSelector = "#__fechaIdaVisual";
-  const submitButtonSelector = "#datosBusqueda > button";
-  const stringNoResults = "El trayecto consultado no se encuentra disponible";
-
   // Set Origin
-  await page.click(originSelector);
+  await page.click(ORIGIN_SELECTOR);
   await page.keyboard.type("Sevilla");
   await page.waitFor(500);
   page.keyboard.press("Enter");
 
   // Set Destination
-  await page.click(destinationSelector);
+  await page.click(DESTINATION_SELECTOR);
   await page.keyboard.type("Barcelona");
   await page.waitFor(500);
   page.keyboard.press("Enter");
 
   // Set date
-  let searchInput = await page.$(dateSelector);
+  let searchInput = await page.$(DATE_SELECTOR);
 
   await searchInput.click({ clickCount: 3 });
   await searchInput.press("Backspace");
@@ -70,14 +68,14 @@ async function checkIfTicketsAvailable(headless) {
   page.keyboard.press("Enter");
 
   // Submit
-  await page.click(submitButtonSelector);
+  await page.click(SUBMIT_BUTTON_SELECTOR);
 
   // Throttle connection
-  // throttleConnection()
+  // await throttleConnection()
 
   // Wait for page redirect
   await page.waitFor(5000);
-  const ticketsAvailable = areTicketsAvailable();
+  const ticketsAvailable = await areTicketsAvailable(page);
   if (ticketsAvailable) {
     await page.screenshot({ path: "screenshot.png", fullPage: true });
   }
@@ -93,8 +91,9 @@ const sendNotification = ticketsAvailable => {
     : "Tickets not available";
   const sendMessageUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${targetTelegramChannel}&text=${message}`;
   request(sendMessageUrl, function(error, response, body) {
-    console.log("statusCode:", response && response.statusCode);
-    console.log("body:", body);
+    console.log(
+      `Notification sent (statusCode:${response && response.statusCode})`
+    );
     if (error) {
       console.log("error:", error);
     }
@@ -121,6 +120,7 @@ const sendNotification = ticketsAvailable => {
 
 const checkAndNotify = async (headless = true) => {
   const ticketsAvailable = await checkIfTicketsAvailable(headless);
+  console.log("ticketsAvailable:", ticketsAvailable);
   sendNotification(ticketsAvailable);
 };
 
